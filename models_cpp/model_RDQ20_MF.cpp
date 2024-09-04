@@ -70,7 +70,7 @@ model_RDQ20_MF::model_RDQ20_MF(std::string parameters_file)
 
   n_variables = 20;
   initial_state.push_back(1.0);
-  for (unsigned int i = 0; i < n_variables - 1; ++i)
+  for (unsigned int i = 1; i < n_variables; ++i)
     initial_state.push_back(0.0);
 }
 
@@ -247,11 +247,11 @@ void model_RDQ20_MF::RU_update_state(const double &dt) {
     for (TC = 0; TC < 2; ++TC)
       for (TR = 0; TR < 2; ++TR)
         for (CC = 0; CC < 2; ++CC) {
-          state_RU[TL][TC][TR][CC] +=
-              dt * (-PhiT_L[TL][TC][TR][CC] + PhiT_L[1 - TL][TC][TR][CC] -
+          auto rate = (-PhiT_L[TL][TC][TR][CC] + PhiT_L[1 - TL][TC][TR][CC] -
                     PhiT_C[TL][TC][TR][CC] + PhiT_C[TL][1 - TC][TR][CC] -
                     PhiT_R[TL][TC][TR][CC] + PhiT_R[TL][TC][1 - TR][CC] -
                     PhiC_C[TL][TC][TR][CC] + PhiC_C[TL][TC][TR][1 - CC]);
+          state_RU[TL][TC][TR][CC] += dt * rate;
         }
 }
 
@@ -297,8 +297,9 @@ void model_RDQ20_MF::XB_update_state(const double &dSL_dt, const double &dt) {
   XB_A(3, 2) = -v;
 
   XB_A *= -dt;
-  for (i_XB = 0; i_XB < 4; ++i_XB)
+  for (i_XB = 0; i_XB < 4; ++i_XB) {
     XB_A(i_XB, i_XB) += 1.0;
+  }
 
   // Fill rhs
   XB_rhs(0) = state_XB[0] + dt * permissivity * prm_mu0_fP;
@@ -309,8 +310,9 @@ void model_RDQ20_MF::XB_update_state(const double &dSL_dt, const double &dt) {
   // Implicit Euler advance
   XB_sol = XB_A.colPivHouseholderQr().solve(XB_rhs);
 
-  for (i_XB = 0; i_XB < 4; ++i_XB)
+  for (i_XB = 0; i_XB < 4; ++i_XB) {
     state_XB[i_XB] = XB_sol(i_XB);
+  }
 }
 
 double model_RDQ20_MF::fraction_single_overlap(const double &SL) const {

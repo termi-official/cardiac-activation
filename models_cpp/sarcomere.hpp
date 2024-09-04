@@ -28,7 +28,7 @@ public:
   std::map<std::string, std::vector<double>>
   solve(const std::function<double(const double &time)> &Ca,
         const std::function<double(const double &time)> &SL, const double &Tmax,
-        const double &time_step = 1e-3);
+        const double &time_step = 1e-5);
 
   // Write the results of a simulation to a csv file.
   void write_csv(std::map<std::string, std::vector<double>> results,
@@ -60,6 +60,8 @@ protected:
   //    active_tension    active tension [kPa]
   virtual double get_active_tension(const std::vector<double> &state,
                                     const double &sarcomere_length) = 0;
+  virtual double get_active_stiffness(const std::vector<double> &state,
+                                    const double &sarcomere_length) { return 0/0; }
 };
 
 #endif /* SARCOMERE_HPP */

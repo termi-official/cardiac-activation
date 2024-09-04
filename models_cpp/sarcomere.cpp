@@ -18,8 +18,13 @@ sarcomere::solve(const std::function<double(const double &time)> &Ca,
 
   std::map<std::string, std::vector<double>> results;
 
-  double time = 0.0;
+  double dt_write = 0.01; // [s]
+  double last_time_write = 0.0; // [s]
+
+  double time = 0.0; // [s]
   std::vector<double> state(initial_state);
+  std::vector<double> prevstate(initial_state);
+  std::vector<double> state_at_t(initial_state);
 
   std::cout << model_name << " model. Computing... " << std::flush;
   std::chrono::steady_clock::time_point begin =
@@ -32,14 +37,35 @@ sarcomere::solve(const std::function<double(const double &time)> &Ca,
     dSL_dt = (SL(time) - SL(time - time_step)) / time_step;
 
     // Update state
+    for(int i = 0; i < 20; i++) {
+      prevstate[i] = state[i];
+    }
     solve_time_step(state, calcium, sarcomere_length, dSL_dt, time_step);
 
     // Store the results
-    results["time"].push_back(time);
-    results["Ca"].push_back(calcium);
-    results["SL"].push_back(sarcomere_length);
-    results["dSL_dt"].push_back(dSL_dt);
-    results["Ta"].push_back(get_active_tension(state, sarcomere_length));
+    if (time + time_step >= last_time_write) {
+      // Update next write time
+      while (time + time_step >= last_time_write) {
+        double tprev = time; 
+        double tnext = time + time_step;
+        double tnow  = last_time_write;
+        // Interpolate state linearly
+        for(int i = 0; i < 20; i++) {
+          state_at_t[i] = prevstate[i] + (tnow-tprev)*(state[i]-prevstate[i])/(tnext-tprev);
+        }
+        calcium = Ca(tnow);
+        sarcomere_length = SL(tnow);
+        dSL_dt = (SL(tnow) - SL(tnow - time_step)) / time_step;
+        results["time"].push_back(tnow);
+        results["Ca"].push_back(calcium);
+        results["SL"].push_back(sarcomere_length);
+        results["dSL_dt"].push_back(dSL_dt);
+        results["Ta"].push_back(get_active_tension(state_at_t, sarcomere_length));
+        results["As"].push_back(get_active_stiffness(state_at_t, sarcomere_length));
+
+        last_time_write += dt_write;
+      }
+  }
 
     // Increase time
     time += time_step;
@@ -58,12 +84,12 @@ void sarcomere::write_csv(std::map<std::string, std::vector<double>> results,
                           std::string file_name) {
   std::ofstream csvfile;
   csvfile.open(file_name);
-  csvfile << "t,Ca,SL,dSL_dt,Ta" << std::endl;
-  csvfile << std::scientific << std::setprecision(16);
+  csvfile << "t,Ca,SL,dSL_dt,Ta,As" << std::endl;
+  csvfile << std::scientific << std::setprecision(8);
   for (unsigned int i = 0; i < results["time"].size(); ++i)
     csvfile << results["time"][i] << "," << results["Ca"][i] << ","
             << results["SL"][i] << "," << results["dSL_dt"][i] << ","
-            << results["Ta"][i] << std::endl;
+            << results["Ta"][i] << "," << results["As"][i] <<  std::endl;
 
   csvfile.close();
 }
