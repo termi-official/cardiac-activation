@@ -95,8 +95,8 @@ void sarcomere::write_csv(std::map<std::string, std::vector<double>> results,
     csvfile << results["time"][i] << "," << results["Ca"][i] << ","
             << results["SL"][i] << "," << results["dSL_dt"][i] << ","
             << results["Ta"][i] << "," << results["As"][i];
-    for(int i=0;i<20;i++)
-          csvfile << "," << results["S" + std::__cxx11::to_string(i)][i];
+    for(int j=0;j<20;j++)
+          csvfile << "," << results["S" + std::__cxx11::to_string(j)][i];
     csvfile << std::endl;
   }
 
